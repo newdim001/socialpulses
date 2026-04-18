@@ -1,59 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SocialPulses - Social Media Automation</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-text {
-      background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialPulses - Social Media Automation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-text {
+            background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .toast {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
-  <header class="bg-white shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-      <h1 class="text-2xl font-bold gradient-text">SocialPulses</h1>
-      <a href="#pricing" class="text-gray-600 hover:text-gray-900">Pricing</a>
-    </div>
-  </header>
-
-  <section class="py-20 bg-white">
-    <div class="max-w-4xl mx-auto px-4 text-center">
-      <h2 class="text-5xl font-bold mb-6">
-        Your Social Media, <span class="gradient-text">Automated</span>
-      </h2>
-      <p class="text-xl text-gray-600 mb-8">
-        Schedule posts, track analytics, and grow your following - on autopilot.
-      </p>
-      <a href="#pricing" class="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition">
-        Get Started
-      </a>
-    </div>
-  </section>
-
-  <section id="pricing" class="py-20 bg-white">
-    <div class="max-w-4xl mx-auto px-4">
-      <div class="max-w-md mx-auto">
-        <div class="bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl p-8 text-white text-center">
-          <div class="text-6xl font-bold mb-2">$49</div>
-          <div class="text-xl opacity-90 mb-2">/month</div>
-          <div class="text-sm opacity-75 mb-8">Unlimited posts, 5 platforms</div>
-          <button class="w-full bg-white text-pink-600 font-bold py-4 rounded-lg hover:bg-opacity-90 transition">
-            Subscribe →
-          </button>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg toast">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">✅</span>
+                <div>
+                    <p class="font-semibold" id="toast-title">Success!</p>
+                    <p class="text-sm opacity-90" id="toast-message">Welcome to SocialPulses!</p>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </section>
 
-  <footer class="bg-gray-900 text-white py-12 text-center">
-    <p class="text-gray-400">© 2026 SocialPulses. All rights reserved.</p>
-  </footer>
+    <header class="bg-white shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold gradient-text">SocialPulses</h1>
+            <a href="#pricing" class="text-gray-600 hover:text-gray-900">Pricing</a>
+        </div>
+    </header>
+
+    <section class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="text-5xl font-bold mb-6">
+                Your Social Media, <span class="gradient-text">Automated</span>
+            </h2>
+            <p class="text-xl text-gray-600 mb-8">
+                Schedule posts, track analytics, and grow your following - on autopilot.
+            </p>
+            <a href="#pricing" class="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition">
+                Get Started
+            </a>
+        </div>
+    </section>
+
+    <section id="pricing" class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Starter -->
+                <div class="border rounded-xl p-6 hover:shadow-lg transition">
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">Starter</h3>
+                    <div class="text-4xl font-bold mb-1">$19</div>
+                    <div class="text-gray-500 mb-6">/month</div>
+                    <ul class="text-sm space-y-2 mb-6">
+                        <li>✓ 1 user</li>
+                        <li>✓ 5 social accounts</li>
+                        <li>✓ Schedule posts</li>
+                        <li>✓ Basic analytics</li>
+                    </ul>
+                    <button onclick="startCheckout('starter')" class="w-full bg-gray-100 text-gray-800 font-semibold py-3 rounded-lg hover:bg-gray-200 transition">
+                        Start Free Trial
+                    </button>
+                </div>
+
+                <!-- Professional -->
+                <div class="border-2 border-pink-500 rounded-xl p-6 relative hover:shadow-lg transition">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-pink-500 text-white text-xs px-3 py-1 rounded-full">MOST POPULAR</div>
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">Professional</h3>
+                    <div class="text-4xl font-bold mb-1">$49</div>
+                    <div class="text-gray-500 mb-6">/month</div>
+                    <ul class="text-sm space-y-2 mb-6">
+                        <li>✓ 3 users</li>
+                        <li>✓ 15 social accounts</li>
+                        <li>✓ AI content generator</li>
+                        <li>✓ Advanced analytics</li>
+                        <li>✓ All platforms</li>
+                    </ul>
+                    <button onclick="startCheckout('professional')" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold py-3 rounded-lg hover:opacity-90 transition">
+                        Start Free Trial
+                    </button>
+                </div>
+
+                <!-- Business -->
+                <div class="border rounded-xl p-6 hover:shadow-lg transition">
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">Business</h3>
+                    <div class="text-4xl font-bold mb-1">$99</div>
+                    <div class="text-gray-500 mb-6">/month</div>
+                    <ul class="text-sm space-y-2 mb-6">
+                        <li>✓ 10 users</li>
+                        <li>✓ Unlimited accounts</li>
+                        <li>✓ Team collaboration</li>
+                        <li>✓ Custom workflows</li>
+                        <li>✓ API access</li>
+                    </ul>
+                    <button onclick="startCheckout('business')" class="w-full bg-gray-100 text-gray-800 font-semibold py-3 rounded-lg hover:bg-gray-200 transition">
+                        Start Free Trial
+                    </button>
+                </div>
+
+                <!-- Enterprise -->
+                <div class="border rounded-xl p-6 hover:shadow-lg transition">
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">Enterprise</h3>
+                    <div class="text-4xl font-bold mb-1">$199</div>
+                    <div class="text-gray-500 mb-6">/month</div>
+                    <ul class="text-sm space-y-2 mb-6">
+                        <li>✓ Unlimited users</li>
+                        <li>✓ Everything in Business</li>
+                        <li>✓ Custom integrations</li>
+                        <li>✓ SLA guarantee</li>
+                        <li>✓ Dedicated manager</li>
+                    </ul>
+                    <button onclick="startCheckout('enterprise')" class="w-full bg-gray-100 text-gray-800 font-semibold py-3 rounded-lg hover:bg-gray-200 transition">
+                        Contact Sales
+                    </button>
+                </div>
+            </div>
+            <p class="text-center text-gray-500 mt-8">All plans include 14-day free trial. Cancel anytime.</p>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 text-white py-12 text-center">
+        <p class="text-gray-400">© 2026 SocialPulses. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Handle URL params for Stripe redirect
+        const params = new URLSearchParams(window.location.search);
+        const toast = document.getElementById('toast');
+        const toastTitle = document.getElementById('toast-title');
+        const toastMessage = document.getElementById('toast-message');
+
+        if (params.get('success') === 'true') {
+            const plan = params.get('plan') || 'professional';
+            const planNames = { starter: 'Starter', professional: 'Professional', business: 'Business', enterprise: 'Enterprise' };
+            toastTitle.textContent = 'Subscription Active!';
+            toastMessage.textContent = `Welcome to SocialPulses ${planNames[plan] || 'Professional'}! Check your email.`;
+            toast.classList.remove('hidden');
+            toast.querySelector('div').className = 'bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg toast';
+            setTimeout(() => toast.classList.add('hidden'), 5000);
+        } else if (params.get('canceled') === 'true') {
+            toastTitle.textContent = 'Checkout Canceled';
+            toastMessage.textContent = 'No worries, you can try again anytime.';
+            toast.classList.remove('hidden');
+            toast.querySelector('div').className = 'bg-gray-500 text-white px-6 py-4 rounded-lg shadow-lg toast';
+            setTimeout(() => toast.classList.add('hidden'), 5000);
+        }
+
+        // Checkout handler
+        async function startCheckout(plan) {
+            if (plan === 'enterprise') {
+                window.location.href = 'mailto:sales@socialpulses.io?subject=Enterprise Plan Inquiry';
+                return;
+            }
+            
+            const email = prompt('Enter your email to start your free trial:');
+            if (!email) return;
+            
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, plan })
+                });
+                
+                const data = await response.json();
+                
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert('Error: ' + (data.error || 'Something went wrong'));
+                }
+            } catch (err) {
+                alert('Network error. Please try again.');
+            }
+        }
+    </script>
 </body>
 </html>
