@@ -1,4 +1,4 @@
-
+from __future__ import annotations
 import os
 import sys
 import datetime
@@ -1494,7 +1494,7 @@ def update_post(post_id: int, req: PostUpdate, user=Depends(get_current_user), d
     db.add(version)
     db.commit()
     db.refresh(post)
-    event_type = "post.scheduled" if scheduled else "post.created"
+    event_type = "post.scheduled" if post.scheduled_at else "post.created"
     fire_post_webhooks(event_type, post.id, user.client_id, db)
     return _hydrate_posts([post], db)[0]
 
@@ -1568,7 +1568,7 @@ def duplicate_post(post_id: int, user=Depends(get_current_user), db=Depends(get_
         db.add(PostAccount(post_id=post.id, social_account_id=pa.social_account_id, status="pending"))
     db.commit()
     db.refresh(post)
-    event_type = "post.scheduled" if scheduled else "post.created"
+    event_type = "post.scheduled" if post.scheduled_at else "post.created"
     fire_post_webhooks(event_type, post.id, user.client_id, db)
     return _hydrate_posts([post], db)[0]
 

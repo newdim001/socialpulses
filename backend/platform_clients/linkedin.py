@@ -21,7 +21,7 @@ class LinkedInClient(BasePlatformClient):
         return (
             f"{LinkedInClient.AUTH_BASE}?"
             f"response_type=code&client_id={client_id}"
-            f"&redirect_uri={urllib.parse.quote(redirect_uri, safe="")}&scope={scopes.replace(' ', '%20')}"
+            f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}&scope={scopes.replace(' ', '%20')}"
             f"&state={state}"
         )
 
