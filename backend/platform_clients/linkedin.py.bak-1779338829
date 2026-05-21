@@ -1,0 +1,169 @@
+from __future__ import annotations
+from typing import Optional, List
+import requests
+import os
+
+from platform_clients import BasePlatformClient
+
+
+class LinkedInClient(BasePlatformClient):
+    """LinkedIn API client for posting shares."""
+
+    API_BASE = "https://api.linkedin.com/v2"
+    AUTH_BASE = "https://www.linkedin.com/oauth/v2/authorization"
+    TOKEN_BASE = "https://www.linkedin.com/oauth/v2/accessToken"
+
+    @staticmethod
+    def get_oauth_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
+        scopes = "w_member_social openid profile email"
+        return (
+            f"{LinkedInClient.AUTH_BASE}?"
+            f"response_type=code&client_id={client_id}"
+            f"&redirect_uri={redirect_uri}&scope={scopes.replace(' ', '%20')}"
+            f"&state={state}"
+        )
+
+    @staticmethod
+    def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str) -> dict:
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
+        }
+        resp = requests.post(LinkedInClient.TOKEN_BASE, data=data)
+        resp.raise_for_status()
+        return resp.json()
+
+    def _get_user_id(self) -> str:
+        resp = requests.get(
+            f"{self.API_BASE}/userinfo",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+        resp.raise_for_status()
+        return resp.json()["sub"]
+
+    def post_text(self, text: str) -> dict:
+        user_id = self._get_user_id()
+        body = {
+            "author": f"urn:li:person:{user_id}",
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {"text": text},
+                    "shareMediaCategory": "NONE",
+                }
+            },
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
+        }
+        resp = requests.post(
+            f"{self.API_BASE}/ugcPosts",
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+                "X-Restli-Protocol-Version": "2.0.0",
+                "Content-Type": "application/json",
+            },
+            json=body,
+        )
+        if resp.status_code == 401:
+            raise PermissionError("Token expired")
+        resp.raise_for_status()
+        post_id = resp.json().get("id", "")
+        return {"platform_post_id": post_id, "url": f"https://linkedin.com/feed/update/{post_id}"}
+
+    def post_with_media(self, text: str, media_urls: List[str]) -> dict:
+        user_id = self._get_user_id()
+        # Register images first
+        assets = []
+        for url in media_urls:
+            register_resp = requests.post(
+                f"{self.API_BASE}/assets?action=registerUpload",
+                headers={"Authorization": f"Bearer {self.access_token}"},
+                json={
+                    "registerUploadRequest": {
+                        "recipes": ["urn:li:digitalmediaRecipe:feedshare-image"],
+                        "owner": f"urn:li:person:{user_id}",
+                        "serviceRelationships": [{
+                            "relationshipType": "OWNER",
+                            "identifier": "urn:li:userGeneratedContent",
+                        }],
+                    }
+                },
+            )
+            register_resp.raise_for_status()
+            upload_data = register_resp.json()["value"]
+            upload_url = upload_data["uploadMechanism"]["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]["uploadUrl"]
+            asset_urn = upload_data["asset"]
+
+            # Upload the image
+            img_resp = requests.get(url)
+            img_resp.raise_for_status()
+            requests.put(upload_url, data=img_resp.content, headers={"Authorization": f"Bearer {self.access_token}"})
+
+            assets.append({"status": "READY", "media": asset_urn})
+
+        body = {
+            "author": f"urn:li:person:{user_id}",
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {"text": text},
+                    "shareMediaCategory": "IMAGE",
+                    "media": assets,
+                }
+            },
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
+        }
+        resp = requests.post(
+            f"{self.API_BASE}/ugcPosts",
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+                "X-Restli-Protocol-Version": "2.0.0",
+                "Content-Type": "application/json",
+            },
+            json=body,
+        )
+        if resp.status_code == 401:
+            raise PermissionError("Token expired")
+        resp.raise_for_status()
+        post_id = resp.json().get("id", "")
+        return {"platform_post_id": post_id, "url": f"https://linkedin.com/feed/update/{post_id}"}
+
+    def get_user_info(self) -> dict:
+        resp = requests.get(
+            f"{self.API_BASE}/userinfo",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return {
+            "platform_user_id": data["sub"],
+            "platform_username": data.get("preferred_username", data["sub"]),
+            "display_name": data.get("name", data.get("preferred_username", data["sub"])),
+        }
+
+    def refresh_access_token(self) -> Optional[str]:
+        client_id = os.environ.get("LINKEDIN_CLIENT_ID", "")
+        client_secret = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
+        if not self.refresh_token:
+            return None
+        data = {
+            "grant_type": "refresh_token",
+            "refresh_token": self.refresh_token,
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+        resp = requests.post(self.TOKEN_BASE, data=data)
+        if resp.status_code != 200:
+            return None
+        result = resp.json()
+        self.access_token = result["access_token"]
+        return result["access_token"]
+
+    def validate_token(self) -> bool:
+        try:
+            self.get_user_info()
+            return True
+        except Exception:
+            return False

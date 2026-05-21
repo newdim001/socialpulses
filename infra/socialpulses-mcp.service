@@ -1,0 +1,19 @@
+[Unit]
+Description=SocialPulses MCP Server
+After=network.target
+
+[Service]
+EnvironmentFile=/var/www/socialpulses/mcp.env
+Type=simple
+User=socialpulses
+Group=socialpulses
+WorkingDirectory=/var/www/socialpulses/backend
+ExecStart=/var/www/socialpulses/mcp-venv/bin/python3 /var/www/socialpulses/backend/mcp_server.py --sse
+Environment=MCP_ALLOW_HOSTS=127.0.0.1,localhost
+Environment=MCP_PORT=8099
+Environment=MCP_HOST=127.0.0.1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

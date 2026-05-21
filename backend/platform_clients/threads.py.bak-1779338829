@@ -1,0 +1,65 @@
+from __future__ import annotations
+from typing import Optional, List
+import requests
+import os
+from platform_clients import BasePlatformClient
+
+class ThreadsClient(BasePlatformClient):
+    API_BASE = "https://graph.threads.net/v1.0"
+    AUTH_BASE = "https://www.threads.net/oauth/authorize"
+    TOKEN_BASE = "https://graph.threads.net/oauth/access_token"
+
+    @staticmethod
+    def get_oauth_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
+        scopes = "threads_basic threads_publish"
+        return f"{ThreadsClient.AUTH_BASE}?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scopes.replace(' ', '%20')}&state={state}"
+
+    @staticmethod
+    def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str) -> dict:
+        data = {"client_id": client_id, "client_secret": client_secret, "code": code, "grant_type": "authorization_code", "redirect_uri": redirect_uri}
+        resp = requests.post(ThreadsClient.TOKEN_BASE, data=data)
+        resp.raise_for_status()
+        return resp.json()
+
+    def _headers(self): return {"Authorization": f"Bearer {self.access_token}"}
+
+    def post_text(self, text: str) -> dict:
+        resp = requests.post(f"{self.API_BASE}/me/threads", headers=self._headers(), params={"media_type": "TEXT", "text": text})
+        if resp.status_code == 401: raise PermissionError("Token expired")
+        resp.raise_for_status()
+        cid = resp.json().get("id", "")
+        pub = requests.post(f"{self.API_BASE}/me/threads_publish", headers=self._headers(), params={"creation_id": cid})
+        if pub.status_code == 401: raise PermissionError("Token expired")
+        pub.raise_for_status()
+        tid = pub.json().get("id", "")
+        return {"platform_post_id": tid, "url": f"https://www.threads.net/@{tid}", "status": "published"}
+
+    def post_with_media(self, text: str, media_urls: List[str]) -> dict:
+        if not media_urls: return self.post_text(text)
+        resp = requests.post(f"{self.API_BASE}/me/threads", headers=self._headers(), params={"media_type": "IMAGE", "image_url": media_urls[0], "text": text})
+        if resp.status_code == 401: raise PermissionError("Token expired")
+        resp.raise_for_status()
+        cid = resp.json().get("id", "")
+        pub = requests.post(f"{self.API_BASE}/me/threads_publish", headers=self._headers(), params={"creation_id": cid})
+        if pub.status_code == 401: raise PermissionError("Token expired")
+        pub.raise_for_status()
+        tid = pub.json().get("id", "")
+        return {"platform_post_id": tid, "url": f"https://www.threads.net/@{tid}", "status": "published"}
+
+    def get_user_info(self) -> dict:
+        resp = requests.get(f"{self.API_BASE}/me", headers=self._headers(), params={"fields": "id,username,name,threads_profile_picture_url"})
+        resp.raise_for_status()
+        data = resp.json()
+        return {"platform_user_id": data.get("id", ""), "platform_username": data.get("username", ""), "display_name": data.get("name", data.get("username", "")), "avatar_url": data.get("threads_profile_picture_url", "")}
+
+    def refresh_access_token(self) -> Optional[str]:
+        cs = os.environ.get("THREADS_CLIENT_SECRET", "")
+        if not self.refresh_token: return None
+        resp = requests.post(f"{self.API_BASE}/refresh_access_token", data={"grant_type": "refresh_token", "refresh_token": self.refresh_token, "client_secret": cs, "access_token": self.access_token})
+        if resp.status_code != 200: return None
+        self.access_token = resp.json().get("access_token", self.access_token)
+        return self.access_token
+
+    def validate_token(self) -> bool:
+        try: self.get_user_info(); return True
+        except: return False

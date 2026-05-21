@@ -1,0 +1,19 @@
+[Unit]
+Description=SocialPulses Publisher - background post scheduler
+After=network.target socialpulses.service
+Requires=socialpulses.service
+
+[Service]
+Type=simple
+User=socialpulses
+Group=socialpulses
+WorkingDirectory=/var/www/socialpulses/backend
+EnvironmentFile=/var/www/socialpulses/backend/.env
+ExecStart=/var/www/socialpulses/venv/bin/python3 /var/www/socialpulses/backend/run_publisher.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/socialpulses/logs/publisher.log
+StandardError=append:/var/www/socialpulses/logs/publisher.log
+
+[Install]
+WantedBy=multi-user.target

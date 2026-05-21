@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface-0: #08090a;
+  --color-surface-1: #0e0f10;
+  --color-surface-2: #141516;
+  --color-surface-3: #1a1b1d;
+  --color-surface-4: #202224;
+  --color-primary: #ededef;
+  --color-secondary: #a1a1aa;
+  --color-muted: #6b6b74;
+  --color-accent: #5e6ad2;
+  --color-accent-soft: rgba(94, 106, 210, 0.12);
+  --color-blue: #38bdf8;
+  --color-green: #4ade80;
+  --color-red: #f87171;
+  --color-amber: #fbbf24;
+  --color-purple: #a78bfa;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-hover: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --color-surface-0: #ffffff;
+  --color-surface-1: #f8f9fa;
+  --color-surface-2: #f1f3f5;
+  --color-surface-3: #e9ecef;
+  --color-surface-4: #dee2e6;
+  --color-primary: #1a1b1e;
+  --color-secondary: #6b7280;
+  --color-muted: #9ca3af;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(0, 0, 0, 0.12);
+}
+
+@layer base {
+  * { @apply m-0 p-0 box-border; }
+  body {
+    @apply bg-surface-0 text-primary antialiased min-h-screen;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  a { @apply text-blue no-underline transition-colors; }
+  a:hover { @apply text-blue/80; }
+  ::selection { @apply bg-accent/20 text-accent; }
+}
+
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}

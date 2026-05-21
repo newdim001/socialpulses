@@ -1,0 +1,25 @@
+{
+  "name": "SocialPulses",
+  "short_name": "SocialPulses",
+  "description": "Social media management & publishing platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090a",
+  "theme_color": "#08090a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "social",
+    "productivity",
+    "business"
+  ],
+  "lang": "en",
+  "scope": "/"
+}

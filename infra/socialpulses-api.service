@@ -1,0 +1,19 @@
+[Unit]
+Description=SocialPulses FastAPI Backend
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/socialpulses/backend
+EnvironmentFile=/var/www/socialpulses/.env
+ExecStart=/var/www/socialpulses/venv/bin/python3 /var/www/socialpulses/venv/bin/gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8007 --timeout 120 --error-logfile /var/www/socialpulses/backend/gunicorn_err.log
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=socialpulses-api
+
+[Install]
+WantedBy=multi-user.target

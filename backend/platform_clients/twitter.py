@@ -1,0 +1,143 @@
+from __future__ import annotations
+from typing import Optional, List
+import requests
+import os
+import hashlib
+import base64
+import secrets
+
+from platform_clients import BasePlatformClient
+from rate_limit_utils import api_call_with_backoff
+
+
+class TwitterClient(BasePlatformClient):
+    """X/Twitter API v2 client using OAuth 2.0 with PKCE."""
+
+    API_BASE = "https://api.twitter.com/2"
+    UPLOAD_BASE = "https://upload.twitter.com/1.1/media"
+    AUTH_BASE = "https://twitter.com/i/oauth2/authorize"
+    TOKEN_BASE = "https://api.twitter.com/2/oauth2/token"
+
+    @staticmethod
+    def _generate_pkce_pair() -> tuple[str, str]:
+        """Generate PKCE code_verifier and S256 code_challenge."""
+        verifier = base64.urlsafe_b64encode(secrets.token_bytes(96)).rstrip(b"=").decode()[:128]
+        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
+        return verifier, challenge
+
+    @staticmethod
+    def get_oauth_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
+        import urllib.parse
+        scopes = "tweet.read tweet.write users.read offline.access"
+        verifier, challenge = TwitterClient._generate_pkce_pair()
+        verifier_state = f"{verifier}|{state}"
+        return (
+            f"{TwitterClient.AUTH_BASE}?"
+            f"response_type=code&client_id={urllib.parse.quote(client_id, safe='')}"
+            f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}"
+            f"&scope={urllib.parse.quote(scopes)}"
+            f"&state={urllib.parse.quote(verifier_state, safe='')}"
+            f"&code_challenge={urllib.parse.quote(challenge, safe='')}"
+            f"&code_challenge_method=S256"
+        )
+
+    @staticmethod
+    def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str, state: str = "") -> dict:
+        import logging
+        logger = logging.getLogger("socialpulses.twitter.exchange")
+        # Extract PKCE verifier from state (format: "verifier|uuid")
+        verifier = state.split("|")[0] if "|" in state else base64.urlsafe_b64encode(secrets.token_bytes(96)).rstrip(b"=").decode()[:128]
+        data = {
+            "code": code,
+            "grant_type": "authorization_code",
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "code_verifier": verifier,
+        }
+        if client_secret:
+            data["client_secret"] = client_secret
+        logger.info(f"Exchanging code for token: TOKEN_BASE={TwitterClient.TOKEN_BASE}, redirect_uri={redirect_uri}")
+        logger.info(f"Request data: code={code[:20]}..., grant_type={data['grant_type']}, client_id={client_id[:20]}...")
+        logger.info(f"code_verifier length: {len(verifier)}")
+        resp = api_call_with_backoff(lambda: requests.post(TwitterClient.TOKEN_BASE, data=data, auth=(client_id, client_secret)))
+        logger.info(f"Twitter token exchange response: {resp.status_code} - {resp.text[:500]}")
+        if not resp.ok:
+            raise ValueError(f"Twitter token exchange failed: {resp.status_code} {resp.text[:200]}")
+        return resp.json()
+
+    def post_text(self, text: str) -> dict:
+        resp = api_call_with_backoff(lambda: requests.post(
+            f"{self.API_BASE}/tweets",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+            json={"text": text},
+        ))
+        if resp.status_code == 401:
+            raise PermissionError("Token expired")
+        resp.raise_for_status()
+        data = resp.json()
+        return {"platform_post_id": data["data"]["id"], "url": f"https://twitter.com/i/status/{data['data']['id']}"}
+
+    def post_with_media(self, text: str, media_urls: List[str]) -> dict:
+        # Twitter: upload media first, then post with media_ids
+        media_ids = []
+        for url in media_urls:
+            # Download the media file
+            img_resp = api_call_with_backoff(lambda: requests.get(url))
+            img_resp.raise_for_status()
+            # Upload to Twitter
+            files = {"media": img_resp.content}
+            upload_resp = api_call_with_backoff(lambda: requests.post(
+                f"{self.UPLOAD_BASE}/upload.json?media_category=tweet_image",
+                headers={"Authorization": f"Bearer {self.access_token}"},
+                files=files,
+            ))
+            upload_resp.raise_for_status()
+            media_ids.append(str(upload_resp.json()["media_id"]))
+
+        resp = api_call_with_backoff(lambda: requests.post(
+            f"{self.API_BASE}/tweets",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+            json={"text": text, "media": {"media_ids": media_ids}} if media_ids else {"text": text},
+        ))
+        if resp.status_code == 401:
+            raise PermissionError("Token expired")
+        resp.raise_for_status()
+        data = resp.json()
+        return {"platform_post_id": data["data"]["id"], "url": f"https://twitter.com/i/status/{data['data']['id']}"}
+
+    def get_user_info(self) -> dict:
+        resp = api_call_with_backoff(lambda: requests.get(
+            f"{self.API_BASE}/users/me",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        ))
+        resp.raise_for_status()
+        data = resp.json()["data"]
+        return {
+            "platform_user_id": data["id"],
+            "platform_username": data["username"],
+            "display_name": data.get("name", data["username"]),
+        }
+
+    def refresh_access_token(self) -> Optional[str]:
+        client_id = os.environ.get("TWITTER_CLIENT_ID", "")
+        client_secret = os.environ.get("TWITTER_CLIENT_SECRET", "")
+        if not self.refresh_token:
+            return None
+        data = {
+            "refresh_token": self.refresh_token,
+            "grant_type": "refresh_token",
+            "client_id": client_id,
+        }
+        resp = api_call_with_backoff(lambda: requests.post(self.TOKEN_BASE, data=data, auth=(client_id, client_secret)))
+        if resp.status_code != 200:
+            return None
+        result = resp.json()
+        self.access_token = result["access_token"]
+        return result["access_token"]
+
+    def validate_token(self) -> bool:
+        try:
+            self.get_user_info()
+            return True
+        except Exception:
+            return False

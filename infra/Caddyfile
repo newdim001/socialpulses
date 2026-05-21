@@ -1,0 +1,169 @@
+# SocialPulses
+{
+	http_port 80
+}
+
+app.socialpulses.io {
+	# MCP Server — direct proxy
+	handle_path /mcp* {
+		reverse_proxy localhost:8099
+	}
+
+	route {
+		@denied_git {
+			path_regexp denied_git (^|/)(\.git|\.env|\.venv)(/|$)
+		}
+		respond @denied_git 403
+
+		@denied_ext {
+			path *.bak *.pyc *.md *.sql *.log
+		}
+		respond @denied_ext 403
+
+		handle /assets/* {
+			root * /var/www/socialpulses/frontend
+			file_server
+			header Cache-Control "public, max-age=31536000, immutable"
+		}
+		handle /help/* {
+			root * /var/www/marketing/help
+			file_server
+		}
+
+		# SPA routes for privacy and terms
+		handle /privacy* {
+			root * /var/www/socialpulses/frontend
+			try_files {path} /index.html
+			file_server
+		}
+		handle /terms* {
+			root * /var/www/socialpulses/frontend
+			try_files {path} /index.html
+			file_server
+		}
+
+		# API routes go to backend
+		# Free Tools API
+		handle_path /api/tools/* {
+			reverse_proxy localhost:8010
+		}
+
+		handle /api/* {
+			reverse_proxy localhost:8007
+		}
+
+		# Serve uploaded media files directly
+		handle /media/* {
+			root * /var/www/socialpulses
+			file_server
+		}
+
+		# SPA catch-all — serve index.html for all other routes
+		handle {
+			root * /var/www/socialpulses/frontend
+			try_files {path} /index.html
+			file_server
+		}
+	}
+
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.socialpulses.io https://app.socialpulses.io https://app.socialpulses.io; frame-src 'none'; object-src 'none'; base-uri 'self'`
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+	}
+
+	request_body /api/media/upload 50MB
+}
+
+api.socialpulses.io {
+	# Free Tools API
+	handle_path /api/tools/* {
+		reverse_proxy localhost:8010
+	}
+
+	encode zstd gzip
+
+	@denied_git {
+		path_regexp denied_git (^|/)(\.git|\.env|\.venv)(/|$)
+	}
+	respond @denied_git 403
+
+	@denied_ext {
+		path *.bak *.pyc *.md *.sql *.log
+	}
+	respond @denied_ext 403
+
+	reverse_proxy localhost:8007
+
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self'; frame-src 'none'; object-src 'none'`
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+	}
+}
+
+socialpulses.io {
+	# Free Tools API
+	handle_path /api/tools/* {
+		reverse_proxy localhost:8010
+	}
+
+	encode zstd gzip
+
+	root * /var/www/marketing
+	try_files {path}.html {path} {path}/ /index.html
+	file_server
+
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.socialpulses.io https://app.socialpulses.io; frame-src 'none'; object-src 'none'; base-uri 'self'`
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+	}
+
+	@contactform {
+		path /api/contact
+	}
+	header @contactform Access-Control-Allow-Origin "https://socialpulses.io"
+	header @contactform Access-Control-Allow-Methods "POST, OPTIONS"
+	header @contactform Access-Control-Allow-Headers "Content-Type"
+
+	@denied_git {
+		path_regexp denied_git (^|/)(\.git|\.env|\.venv)(/|$)
+	}
+	respond @denied_git 403
+
+	@denied_ext {
+		path *.bak *.pyc *.md *.sql *.log
+	}
+	respond @denied_ext 403
+}
+
+www.socialpulses.io {
+	redir https://socialpulses.io{uri}
+}
+
+store.socialpulses.io {
+	reverse_proxy localhost:8013
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+	}
+}
