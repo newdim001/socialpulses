@@ -40,7 +40,7 @@ def _oauth1_sign(method, url, params, consumer_key, consumer_secret, token, toke
     ).decode()
     oauth_params["oauth_signature"] = signature
     auth_header = "OAuth " + ", ".join(
-        f'{k}="{urllib.parse.quote(str(v), safe='')}"'
+        f'{k}="{urllib.parse.quote(str(v), safe="")}"'
         for k, v in sorted(oauth_params.items())
     )
     return auth_header

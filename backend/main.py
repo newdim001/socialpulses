@@ -1546,6 +1546,11 @@ def publish_now(post_id: int, user=Depends(get_current_user), db=Depends(get_db)
         from publisher import Publisher
         p = Publisher()
         p._publish_post(db, post)
+        # If no accounts, mark as published anyway (user explicitly clicked publish)
+        if not post.post_accounts:
+            post.status = PostStatus.published
+            post.published_at = datetime.datetime.utcnow()
+            db.commit()
         fire_post_webhooks("post.published" if post.status == PostStatus.published else "post.failed", post.id, user.client_id, db)
     except Exception as e:
         logger.warning("Immediate publish attempt failed: %s", e)
