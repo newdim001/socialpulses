@@ -92,6 +92,10 @@ class Publisher:
 
     def _publish_post(self, db: Session, post: Post):
         """Publish a scheduled post to all its connected accounts."""
+        # No accounts means nothing to publish — preserve current status
+        if not post.post_accounts:
+            return
+
         logger.info("Publishing post %d...", post.id)
         all_succeeded = True
         any_succeeded = False
