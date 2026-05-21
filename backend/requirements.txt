@@ -10,3 +10,7 @@ APScheduler==3.10.4
 aiofiles==23.2.1
 stripe==11.4.1
 feedparser==6.0.12
+slowapi
+resend
+httpx<0.28
+redis

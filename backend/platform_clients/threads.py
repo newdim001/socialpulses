@@ -14,7 +14,7 @@ class ThreadsClient(BasePlatformClient):
     @staticmethod
     def get_oauth_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
         scopes = "threads_basic threads_publish"
-        return f"{ThreadsClient.AUTH_BASE}?response_type=code&client_id={client_id}&redirect_uri={urllib.parse.quote(redirect_uri, safe="")}&scope={scopes.replace(' ', '%20')}&state={state}"
+        return f"{ThreadsClient.AUTH_BASE}?response_type=code&client_id={client_id}&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}&scope={scopes.replace(' ', '%20')}&state={state}"
 
     @staticmethod
     def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str) -> dict:

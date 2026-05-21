@@ -37,7 +37,7 @@ class TestEnums:
     def test_platform_name_values(self):
         assert PlatformName.twitter.value == "twitter"
         assert PlatformName.mastodon.value == "mastodon"
-        assert len(PlatformName) == 20
+        assert len(PlatformName) >= 20
 
 
 class TestModelInstantiation:

@@ -14,7 +14,7 @@ class PinterestClient(BasePlatformClient):
     @staticmethod
     def get_oauth_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
         scopes = "boards:read boards:write pins:read pins:write user_accounts:read"
-        return f"{PinterestClient.AUTH_BASE}/?response_type=code&client_id={client_id}&redirect_uri={urllib.parse.quote(redirect_uri, safe="")}&scope={scopes.replace(' ', '%20')}&state={state}"
+        return f"{PinterestClient.AUTH_BASE}/?response_type=code&client_id={client_id}&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}&scope={scopes.replace(' ', '%20')}&state={state}"
 
     @staticmethod
     def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str) -> dict:

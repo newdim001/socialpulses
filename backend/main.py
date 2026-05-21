@@ -1,4 +1,4 @@
-
+from __future__ import annotations
 import os
 import sys
 import datetime
@@ -1494,7 +1494,7 @@ def update_post(post_id: int, req: PostUpdate, user=Depends(get_current_user), d
     db.add(version)
     db.commit()
     db.refresh(post)
-    event_type = "post.scheduled" if scheduled else "post.created"
+    event_type = "post.scheduled" if post.scheduled_at else "post.created"
     fire_post_webhooks(event_type, post.id, user.client_id, db)
     return _hydrate_posts([post], db)[0]
 
@@ -1546,6 +1546,11 @@ def publish_now(post_id: int, user=Depends(get_current_user), db=Depends(get_db)
         from publisher import Publisher
         p = Publisher()
         p._publish_post(db, post)
+        # If no accounts, mark as published anyway (user explicitly clicked publish)
+        if not post.post_accounts:
+            post.status = PostStatus.published
+            post.published_at = datetime.datetime.utcnow()
+            db.commit()
         fire_post_webhooks("post.published" if post.status == PostStatus.published else "post.failed", post.id, user.client_id, db)
     except Exception as e:
         logger.warning("Immediate publish attempt failed: %s", e)
@@ -1568,7 +1573,7 @@ def duplicate_post(post_id: int, user=Depends(get_current_user), db=Depends(get_
         db.add(PostAccount(post_id=post.id, social_account_id=pa.social_account_id, status="pending"))
     db.commit()
     db.refresh(post)
-    event_type = "post.scheduled" if scheduled else "post.created"
+    event_type = "post.scheduled" if post.scheduled_at else "post.created"
     fire_post_webhooks(event_type, post.id, user.client_id, db)
     return _hydrate_posts([post], db)[0]
 

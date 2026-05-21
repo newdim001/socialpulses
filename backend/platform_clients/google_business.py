@@ -16,7 +16,7 @@ class GoogleBusinessClient(BasePlatformClient):
     def get_oauth_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
         scopes = "https://www.googleapis.com/auth/business.manage"
         return (f"{GoogleBusinessClient.AUTH_BASE}?response_type=code&client_id={client_id}"
-                f"&redirect_uri={urllib.parse.quote(redirect_uri, safe="")}&scope={scopes}&state={state}&access_type=offline")
+                f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}&scope={scopes}&state={state}&access_type=offline")
 
     @staticmethod
     def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str) -> dict:
