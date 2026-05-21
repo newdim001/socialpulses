@@ -42,5 +42,18 @@ Thumbs.db
 /media/
 /uploads/
 
+# Backups & junk
+*.bak
+*.bak-*
+*.broken
+*.plist
+
 # Test artifacts
+test-results/
+tests/reports/
+tests/screenshots/
+tests/fixtures/
 tests/.pytest_cache/
+
+# Server configs (use examples)
+infra/Caddyfile
