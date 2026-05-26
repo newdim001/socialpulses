@@ -8,13 +8,13 @@ from rate_limit_utils import api_call_with_backoff
 
 class ThreadsClient(BasePlatformClient):
     API_BASE = "https://graph.threads.net/v1.0"
-    AUTH_BASE = "https://www.threads.net/oauth/authorize"
+    AUTH_BASE = "https://www.facebook.com/v22.0/dialog/oauth"
     TOKEN_BASE = "https://graph.threads.net/oauth/access_token"
 
     @staticmethod
     def get_oauth_authorize_url(client_id: str, redirect_uri: str, state: str) -> str:
-        scopes = "threads_basic threads_publish"
-        return f"{ThreadsClient.AUTH_BASE}?response_type=code&client_id={client_id}&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}&scope={scopes.replace(' ', '%20')}&state={state}"
+        scopes = "threads_basic,threads_publish"
+        return f"{ThreadsClient.AUTH_BASE}?client_id={client_id}&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}&scope={scopes}&state={state}&response_type=code"
 
     @staticmethod
     def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str) -> dict:
